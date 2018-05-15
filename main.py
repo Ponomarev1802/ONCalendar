@@ -72,24 +72,27 @@ def refresh_access_token():
         f = open('./refresh_token.txt', 'w')
         f.write(answer["refresh_token"])
         f.close()
+def ON_request(request):
+    answer = {"error": "does not init"}
+    while ("error" in answer):
+        f = open('./access_token.txt', 'r')
+        access_token = f.read()
+        f.close()
+        headers = {"Authorization": "bearer " + access_token}
+        r = requests.get(request, headers=headers)
+        if ("text/html" in (r.headers)["Content-Type"]):
+            return r.text
+        answer = (json.loads(r.text))
+        if ("error" in answer):
+            refresh_access_token()
+    return answer
 
+pages = ON_request("https://www.onenote.com/api/v1.0/me/notes/pages?top=10")
 
-#sign_in()
-#get_access_token()
-#refresh_access_token()
-
-f = open ('./access_token.txt', 'r')
-access_token = f.read()
-f.close()
-headers={"Authorization": "bearer " + access_token}
-r = requests.get("https://www.onenote.com/api/v1.0/me/notes/pages?top=10", headers=headers)
-answer = (json.loads(r.text))
-print(answer)
-for pages in answer['value']:
-    print(pages["title"])
-    r = requests.get(pages["self"]+"/content", headers=headers)
-    answer=r.text
-    for elems in (pq(answer).items("[data-tag]")):
-        if (elems.attr("data-tag").find('highlight')+1):
-            print(elems.text())
+print(pages)
+for page in pages['value']:
+    content = ON_request(page["self"]+"/content")
+    for elems in (pq(content).items("[data-tag]")):
+        if ('highlight' in elems.attr("data-tag")):
+            print(elems.text()+" in "+page["title"])
 
