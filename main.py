@@ -12,7 +12,7 @@ from pyquery import PyQuery as pq
 def sign_in():
     driver = webdriver.Chrome('./chromedriver.exe')
     driver.get(
-        "https://login.live.com/oauth20_authorize.srf?response_type=code&client_id=7ec7be29-a871-4cf3-861e-52c7a4efe95f&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient&scope=office.onenote_update")
+        "https://login.live.com/oauth20_authorize.srf?response_type=code&client_id=7ec7be29-a871-4cf3-861e-52c7a4efe95f&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient&scope=office.onenote wl.signin wl.offline_access")
     try:
         success_sign_in = WebDriverWait(driver, 60).until(EC.title_is(""))
     except:
@@ -43,40 +43,53 @@ def get_access_token():
     f = open('./access_token.txt', 'w')
     f.write(answer["access_token"])
     f.close()
+    f = open('./refresh_token.txt', 'w')
+    f.write(answer["refresh_token"])
+    f.close()
 
 def refresh_access_token():
     f = open("./data.txt", "r")
     code = f.read()
     f.close()
-    f = open('./access_token.txt', 'r')
-    access_token = f.read()
+    f = open('./refresh_token.txt', 'r')
+    refresh_token = f.read()
     f.close()
     uri = "https://login.live.com/oauth20_token.srf"
     data = {"grant_type": "refresh_token",
             "client_id": "7ec7be29-a871-4cf3-861e-52c7a4efe95f",
             "code": code,
             "redirect_uri": "https://login.microsoftonline.com/common/oauth2/nativeclient",
-            "refresh_token": access_token
+            "refresh_token": refresh_token
             }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     r = requests.post(uri, headers=headers, data=data)
     print(r.text)
     answer = eval(r.text)
-    f = open('./access_token.txt', 'w')
-    f.write(answer["access_token"])
-    f.close()
+    if answer["access_token"]:
+        f = open('./access_token.txt', 'w')
+        f.write(answer["access_token"])
+        f.close()
+        f = open('./refresh_token.txt', 'w')
+        f.write(answer["refresh_token"])
+        f.close()
 
 
-sign_in()
-get_access_token()
+#sign_in()
+#get_access_token()
+#refresh_access_token()
+
 f = open ('./access_token.txt', 'r')
 access_token = f.read()
 f.close()
 headers={"Authorization": "bearer " + access_token}
-r = requests.get("https://www.onenote.com/api/v1.0/me/notes/pages", headers=headers)
+r = requests.get("https://www.onenote.com/api/v1.0/me/notes/pages?top=10", headers=headers)
 answer = (json.loads(r.text))
 print(answer)
-print(answer["value"][0]["self"])
-r = requests.get(answer["value"][0]["self"]+"/content", headers=headers)
-answer = (r.text)
-print(pq(answer).find("[data-tag='highlight']"))
+for pages in answer['value']:
+    print(pages["title"])
+    r = requests.get(pages["self"]+"/content", headers=headers)
+    answer=r.text
+    for elems in (pq(answer).items("[data-tag]")):
+        if (elems.attr("data-tag").find('highlight')+1):
+            print(elems.text())
+
