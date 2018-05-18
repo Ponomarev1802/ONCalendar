@@ -7,6 +7,25 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from pyquery import PyQuery as pq
+import re
+import datetime
+
+class Alert:
+    def __init__(self, text, attr, page):
+        strdata = re.findall(r"{.*}", text)[0][1:-1]
+        data = re.split(r"[\s:-]", strdata)
+        self.hours = data[0]
+        self.mins = data[1]
+        self.day = data[2]
+        self.month = data[3]
+        self.year = data[4]
+        self.page = page
+        self.text = text[len(data):]
+        self.date = datetime.date(self.year, self.month, self.day)
+        self.time = datetime.time(self.hours, self.mins)
+        self.last_call = 0
+    def print(self):
+        print("hours: " + self.hours + "mins: " + self.mins + "date: " + self.day + "month: " + self.month + "year: " + self.year)
 
 
 def sign_in():
@@ -95,4 +114,6 @@ for page in pages['value']:
     for elems in (pq(content).items("[data-tag]")):
         if ('highlight' in elems.attr("data-tag")):
             print(elems.text()+" in "+page["title"])
+            alarm = Alert(elems.text(), elems.attr("data-tag"), page['title'])
+            alarm.print()
 
