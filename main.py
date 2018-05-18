@@ -14,19 +14,39 @@ class Alert:
     def __init__(self, text, attr, page):
         strdata = re.findall(r"{.*}", text)[0][1:-1]
         data = re.split(r"[\s:-]", strdata)
-        self.hours = data[0]
-        self.mins = data[1]
-        self.day = data[2]
-        self.month = data[3]
-        self.year = data[4]
+
+        if (data[0]!=""):
+            self.hours = int(data[0])
+        else:
+            self.hours = False
+
+        if (data[1] != ""):
+            self.mins = int(data[1])
+        else:
+            self.mins = False
+
+        if (data[2] != ""):
+            self.day = int(data[2])
+        else:
+            self.day = False
+
+        if (data[3] != ""):
+            self.month = int(data[3])
+        else:
+            self.month = False
+
+        if (data[4] != ""):
+            self.year = int(data[4])
+        else:
+            self.year = False
+
         self.page = page
         self.text = text[len(data):]
-        self.date = datetime.date(self.year, self.month, self.day)
-        self.time = datetime.time(self.hours, self.mins)
         self.last_call = 0
     def print(self):
         print("hours: " + self.hours + "mins: " + self.mins + "date: " + self.day + "month: " + self.month + "year: " + self.year)
-
+    def check_time(self):
+        now = datetime.datetime.now()
 
 def sign_in():
     driver = webdriver.Chrome('./chromedriver.exe')
