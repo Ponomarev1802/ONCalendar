@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from pyquery import PyQuery as pq
 import re
 import datetime
+import time
 
 class Alert:
     def __init__(self, text, attr, page):
@@ -17,38 +18,85 @@ class Alert:
 
         now = datetime.datetime.now()
         self.dtime = {}
-        if (data[0]!=""):
+
+        try:
+            self.dtime['minute'] = {"static": True, "value": int(data[1])}
+        except:
+            self.dtime['minute'] = {"static": True, "value": 0}
+
+        try:
             self.dtime['hour'] = {"static": True, "value": int(data[0])}
-        else:
+        except:
             self.dtime['hour'] = {"static": False, "value": now.hour}
 
-        if (data[1]!=""):
-            self.dtime['min'] = {"static": True, "value": int(data[1])}
-        else:
-            self.dtime['min'] = {"static": True, "value": 0}
-
-        if (data[2] != ""):
+        try:
             self.dtime['day'] = {"static": True, "value": int(data[2])}
-        else:
+        except:
             self.dtime['day'] = {"static": False, "value": now.day}
 
-        if (data[3] != ""):
+        try:
             self.dtime['month'] = {"static": True, "value": int(data[3])}
-        else:
+        except:
             self.dtime['month'] = {"static": False, "value": now.month}
 
-        if (data[4] != ""):
+        try:
             self.dtime['year'] = {"static": True, "value": int(data[4])}
-        else:
+        except:
             self.dtime['year'] = {"static": False, "value": now.year}
 
         self.page = page
         self.text = text[len(data):]
-        self.last_call = 0
-    def print(self):
-        print("hours: " + self.hours + "mins: " + self.mins + "date: " + self.day + "month: " + self.month + "year: " + self.year)
+
+        self.next_call = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'], self.dtime['day']['value'], self.dtime['hour']['value'], self.dtime['minute']['value'])
+
     def check_time(self):
         now = datetime.datetime.now()
+        alert_time = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'], self.dtime['day']['value'], self.dtime['hour']['value'], self.dtime['minute']['value'])
+        if (abs(now - alert_time)<datetime.timedelta(0, 60, 0)):
+            return True
+        else:
+            return False
+
+
+    def alert(self):
+        print("alert!!!")
+
+        if not (self.dtime["hour"]["static"]):
+            next_call = self.next_call + datetime.timedelta(hours=1)
+            self.dtime["hour"]["value"]= next_call.hour
+            if (self.dtime["day"]["value"]!=next_call.day) and (not self.dtime["day"]["static"]):
+                self.dtime["day"]["value"] = next_call.day
+            if (self.dtime["month"]["value"]!=next_call.month) and (not self.dtime["month"]["static"]):
+                self.dtime["month"]["value"] = next_call.month
+            if (self.dtime["year"]["value"]!=next_call.year) and (not self.dtime["year"]["static"]):
+                self.dtime["year"]["value"] = next_call.year
+            return
+        if not (self.dtime["day"]["static"]):
+            next_call = self.next_call + datetime.timedelta(hours=24)
+            self.dtime["day"]["value"]= next_call.day
+            if (self.dtime["month"]["value"]!=next_call.month) and (not self.dtime["month"]["static"]):
+                self.dtime["month"]["value"] = next_call.month
+            if (self.dtime["year"]["value"]!=next_call.year) and (not self.dtime["year"]["static"]):
+                self.dtime["year"]["value"] = next_call.year
+            return
+        if not (self.dtime["month"]["static"]):
+            if (self.next_call.month == 12):
+                next_call = datetime.datetime(self.next_call.year+1, 1, self.next_call.day, self.next_call.hour, self.next_call.minute)
+            else:
+                next_call = datetime.datetime(self.next_call.year, self.next_call.month+1, self.next_call.day, self.next_call.hour, self.next_call.minute)
+            self.dtime["month"]["value"]= next_call.month
+            if (self.dtime["year"]["value"]!=next_call.year) and (not self.dtime["year"]["static"]):
+                self.dtime["year"]["value"] = next_call.year
+            return
+
+    def update(self):
+        self.next_call = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'],
+                                           self.dtime['day']['value'], self.dtime['hour']['value'],
+                                           self.dtime['minute']['value'])
+        if (datetime.datetime.now()>self.next_call):
+            return False
+        else:
+            return True
 
 
 
@@ -133,11 +181,19 @@ def ON_request(request):
 pages = ON_request("https://www.onenote.com/api/v1.0/me/notes/pages?top=10")
 
 print(pages)
+alarms = []
 for page in pages['value']:
     content = ON_request(page["self"]+"/content")
     for elems in (pq(content).items("[data-tag]")):
         if ('highlight' in elems.attr("data-tag")):
             print(elems.text()+" in "+page["title"])
-            alarm = Alert(elems.text(), elems.attr("data-tag"), page['title'])
-            alarm.print()
-
+            alarms.append(Alert(elems.text(), elems.attr("data-tag"), page['title']))
+while True:
+    for elem in alarms:
+        if (elem.check_time()):
+            elem.alert()
+            if (not elem.update()):
+                print("Удаляем объект")
+                alarms.remove(elem)
+    print(elem.next_call)
+    time.sleep(60)
