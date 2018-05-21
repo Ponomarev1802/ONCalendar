@@ -15,30 +15,32 @@ class Alert:
         strdata = re.findall(r"{.*}", text)[0][1:-1]
         data = re.split(r"[\s:-]", strdata)
 
+        now = datetime.datetime.now()
+        self.dtime = {}
         if (data[0]!=""):
-            self.hours = int(data[0])
+            self.dtime['hour'] = {"static": True, "value": int(data[0])}
         else:
-            self.hours = False
+            self.dtime['hour'] = {"static": False, "value": now.hour}
 
-        if (data[1] != ""):
-            self.mins = int(data[1])
+        if (data[1]!=""):
+            self.dtime['min'] = {"static": True, "value": int(data[1])}
         else:
-            self.mins = False
+            self.dtime['min'] = {"static": True, "value": 0}
 
         if (data[2] != ""):
-            self.day = int(data[2])
+            self.dtime['day'] = {"static": True, "value": int(data[2])}
         else:
-            self.day = False
+            self.dtime['day'] = {"static": False, "value": now.day}
 
         if (data[3] != ""):
-            self.month = int(data[3])
+            self.dtime['month'] = {"static": True, "value": int(data[3])}
         else:
-            self.month = False
+            self.dtime['month'] = {"static": False, "value": now.month}
 
         if (data[4] != ""):
-            self.year = int(data[4])
+            self.dtime['year'] = {"static": True, "value": int(data[4])}
         else:
-            self.year = False
+            self.dtime['year'] = {"static": False, "value": now.year}
 
         self.page = page
         self.text = text[len(data):]
@@ -47,6 +49,8 @@ class Alert:
         print("hours: " + self.hours + "mins: " + self.mins + "date: " + self.day + "month: " + self.month + "year: " + self.year)
     def check_time(self):
         now = datetime.datetime.now()
+
+
 
 def sign_in():
     driver = webdriver.Chrome('./chromedriver.exe')
