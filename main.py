@@ -10,6 +10,7 @@ from pyquery import PyQuery as pq
 import re
 import datetime
 import time
+import telegram
 
 class Alert:
     def __init__(self, text, attr, page):
@@ -45,21 +46,21 @@ class Alert:
             self.dtime['year'] = {"static": False, "value": now.year}
 
         self.page = page
-        self.text = text[len(data):]
+        self.text = text[len(strdata):]
 
         self.next_call = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'], self.dtime['day']['value'], self.dtime['hour']['value'], self.dtime['minute']['value'])
 
     def check_time(self):
         now = datetime.datetime.now()
         alert_time = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'], self.dtime['day']['value'], self.dtime['hour']['value'], self.dtime['minute']['value'])
-        if (abs(now - alert_time)<datetime.timedelta(0, 60, 0)):
+        if ((now - alert_time)<datetime.timedelta(0, 60, 0)):
             return True
         else:
             return False
 
 
     def alert(self):
-        print("alert!!!")
+        telegram.send_Message(self.text)
 
         if not (self.dtime["hour"]["static"]):
             next_call = self.next_call + datetime.timedelta(hours=1)
@@ -192,8 +193,8 @@ while True:
     for elem in alarms:
         if (elem.check_time()):
             elem.alert()
+            print(elem.next_call)
             if (not elem.update()):
                 print("Удаляем объект")
                 alarms.remove(elem)
-    print(elem.next_call)
     time.sleep(60)
