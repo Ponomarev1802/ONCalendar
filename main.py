@@ -46,7 +46,7 @@ class Alert:
             self.dtime['year'] = {"static": False, "value": now.year}
 
         self.page = page
-        self.text = text[len(strdata):]
+        self.text = text[len(strdata)+2:]
 
         self.next_call = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'], self.dtime['day']['value'], self.dtime['hour']['value'], self.dtime['minute']['value'])
 
@@ -179,22 +179,35 @@ def ON_request(request):
             refresh_access_token()
     return answer
 
-pages = ON_request("https://www.onenote.com/api/v1.0/me/notes/pages?top=10")
+def get_alarms():
+    pages = ON_request("https://www.onenote.com/api/v1.0/me/notes/pages?top=10")
+    print(pages)
+    alarms = []
+    for page in pages['value']:
+        content = ON_request(page["self"] + "/content")
+        for elems in (pq(content).items("[data-tag]")):
+            if ('highlight' in elems.attr("data-tag")):
+                print(elems.text() + " in " + page["title"])
+                alarms.append(Alert(elems.text(), elems.attr("data-tag"), page['title']))
+        return alarms
 
-print(pages)
-alarms = []
-for page in pages['value']:
-    content = ON_request(page["self"]+"/content")
-    for elems in (pq(content).items("[data-tag]")):
-        if ('highlight' in elems.attr("data-tag")):
-            print(elems.text()+" in "+page["title"])
-            alarms.append(Alert(elems.text(), elems.attr("data-tag"), page['title']))
-while True:
-    for elem in alarms:
-        if (elem.check_time()):
-            elem.alert()
-            print(elem.next_call)
-            if (not elem.update()):
-                print("Удаляем объект")
-                alarms.remove(elem)
-    time.sleep(60)
+
+def start_alerts():
+    while True:
+        last_update_time = datetime.datetime.now()
+        alarms = get_alarms()
+        while True:
+            for elem in alarms:
+                if (elem.check_time()):
+                    elem.alert()
+                    print(elem.next_call)
+                    if (not elem.update()):
+                        print("Удаляем объект")
+                        alarms.remove(elem)
+            time.sleep(60)
+            if ((datetime.datetime.now() - last_update_time) > datetime.timedelta(0, 3600, 0)):
+                break
+start_alerts()
+
+
+
