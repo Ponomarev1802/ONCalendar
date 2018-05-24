@@ -23,7 +23,7 @@ class Alert:
         try:
             self.dtime['minute'] = {"static": True, "value": int(data[1])}
         except:
-            self.dtime['minute'] = {"static": True, "value": 0}
+            self.dtime['minute'] = {"static": True, "value": 59}
 
         try:
             self.dtime['hour'] = {"static": True, "value": int(data[0])}
@@ -200,7 +200,7 @@ def start_alerts():
         alarms = get_alarms()
         print("Массив объектов: ")
         for elems in alarms:
-            print (elems.text+" in "+ elems.page)
+            print (elems.text+" in "+ elems.page+": "+str(elems.next_call))
         print("---------------------")
         while True:
             for elem in alarms:
