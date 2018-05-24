@@ -53,7 +53,8 @@ class Alert:
     def check_time(self):
         now = datetime.datetime.now()
         alert_time = datetime.datetime(self.dtime['year']['value'], self.dtime['month']['value'], self.dtime['day']['value'], self.dtime['hour']['value'], self.dtime['minute']['value'])
-        if ((now - alert_time)<datetime.timedelta(0, 60, 0)):
+        if ((now - alert_time)<datetime.timedelta(0, 60, 0)) and ((now - alert_time)>datetime.timedelta(0, 0, 0)):
+            print(now - alert_time)
             return True
         else:
             return False
@@ -181,26 +182,34 @@ def ON_request(request):
 
 def get_alarms():
     pages = ON_request("https://www.onenote.com/api/v1.0/me/notes/pages?top=10")
-    print(pages)
+    print(pages['value'])
     alarms = []
     for page in pages['value']:
         content = ON_request(page["self"] + "/content")
+        print("Обращение к странице "+page['title'])
         for elems in (pq(content).items("[data-tag]")):
             if ('highlight' in elems.attr("data-tag")):
                 print(elems.text() + " in " + page["title"])
                 alarms.append(Alert(elems.text(), elems.attr("data-tag"), page['title']))
-        return alarms
+    return alarms
 
 
 def start_alerts():
     while True:
         last_update_time = datetime.datetime.now()
         alarms = get_alarms()
+        print("Массив объектов: ")
+        for elems in alarms:
+            print (elems.text+" in "+ elems.page)
+        print("---------------------")
         while True:
             for elem in alarms:
                 if (elem.check_time()):
                     elem.alert()
                     print(elem.next_call)
+                    print(elem.text)
+                    print(str(elem.dtime['hour']['value'])+":"+str(elem.dtime['minute']['value'])+" "+str(elem.dtime['day']['value'])+"-"+str(elem.dtime['month']['value'])+"-"+str(elem.dtime['year']['value']))
+                    print("---------------------")
                     if (not elem.update()):
                         print("Удаляем объект")
                         alarms.remove(elem)
